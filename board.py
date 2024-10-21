@@ -98,16 +98,17 @@ def board():
             st.write("삭제된 글입니다.")
         else:
             st.write(f"### {post_data['title']}")
-        st.write(f"작성자: {post_data['username']}")
-        st.write(f"작성 시간: {post_data['timestamp']}")
+            st.write(f"작성자: {post_data['username']}")
+            st.write(f"작성 시간: {post_data['timestamp']}")
 
         # 게시글이 삭제되었는지 확인
         if post_data['is_deleted']:
             st.write("삭제된 글입니다.")
         else:
+            st.write(post_data['content'])
             # 작성자 본인이면 삭제 버튼 제공
             if post_data['username'] == current_user:
-                st.write(post_data['content'])
+                
 
                 # 삭제 버튼 추가
                 if st.session_state['delete_post_id'] is None:
