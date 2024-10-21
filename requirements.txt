@@ -1,7 +1,2 @@
 streamlit_option_menu
-hashlib
-random
-string
-smtplib
 gliner
-datetime
