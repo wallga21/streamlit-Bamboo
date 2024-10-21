@@ -94,7 +94,10 @@ def board():
         st.session_state['delete_post_id'] = None
 
     for post_data in post_list:
-        st.write(f"### {post_data['title']}")
+        if post_data['is_deleted']:
+            st.write("삭제된 글입니다.")
+        else:
+            st.write(f"### {post_data['title']}")
         st.write(f"작성자: {post_data['username']}")
         st.write(f"작성 시간: {post_data['timestamp']}")
 
