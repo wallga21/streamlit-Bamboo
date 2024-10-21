@@ -1,0 +1,8 @@
+streamlit_option_menu
+sqlite3
+hashlib
+random
+string
+smtplib
+gliner
+datetime
