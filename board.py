@@ -1,7 +1,7 @@
 import streamlit as st
 import sqlite3
 import datetime
-from cleanengine import nametest
+from cleanengine import nametest, goodbad
 
 def board():
     '''이 함수는 데이터베이스에서 게시물 파일을 불러와 시간 순서대로 이를 보여주거나 내가 입력한 게시물을 업로드하는 역할을 한다.'''
@@ -26,7 +26,7 @@ def board():
 
         if submit_button:
             if st.session_state.title and st.session_state.content:
-                if nametest(st.session_state.title) or nametest(st.session_state.content):
+                if nametest(st.session_state.title) and goodbad(st.session_state.title) or nametest(st.session_state.content) and goodbad(st.session_state.title):
                     st.error("cleanengine에 의하여 게시가 제한되었습니다. 타인을 비난 및 비방하는 글은 삼가주시기 바랍니다.")
                 else:
                     conn = sqlite3.connect('bamboo.db')
