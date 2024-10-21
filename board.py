@@ -33,7 +33,13 @@ def board():
                     c = conn.cursor()
                     file_data = st.session_state.file.read() if st.session_state.file else None
                     file_name = st.session_state.file.name if st.session_state.file else None
-                    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    now_utc = datetime.datetime.utcnow()
+
+                    # 한국 시간으로 변환 (UTC + 9시간)
+                    kst_time = now_utc + datetime.timedelta(hours=9)
+                    
+                    # 한국 시간 형식으로 출력
+                    timestamp = kst_time.strftime("%Y-%m-%d %H:%M:%S")
                     name = st.session_state.username
 
                     post_data = {
