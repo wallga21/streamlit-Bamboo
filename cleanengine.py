@@ -13,7 +13,9 @@ def goodbad(new_text):
     max_sequence_length = 100
     sequence = tokenizer.texts_to_sequences([new_text])
     padded_sequence = pad_sequences(sequence, maxlen=max_sequence_length)
-    return model2.predict(padded_sequence)<=0.85
+    a=model2.predict(padded_sequence)
+    print(a, new_text)
+    return a<=0.85
 
 # Mapping from Compatibility Jamo to Hangul Jamo (Choseong)
 compat_to_standard_initials = {
