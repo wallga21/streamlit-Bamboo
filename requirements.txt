@@ -1,2 +1,3 @@
 streamlit_option_menu
 gliner
+tensorflow==2.18.0
