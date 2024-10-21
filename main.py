@@ -56,5 +56,15 @@ def show_sidebar():
         show_privacy_policy()
     else:
         show_about_app()
+html = """
+<head>
+  <meta charset="UTF-9">
+  <meta name="description" content="Bamboo">
+  <meta name="keywords" content="DSHS, 대곽,Bamboo,밤부">
+  <meta name="author" content="STATIC">
+    <title>Bamboo</title>
+</head> 
+"""
+st.markdown(html, unsafe_allow_html=True)
 init_db()
 show_sidebar()
