@@ -16,7 +16,7 @@ def show_about_app():
     
 
     # 이미지 파일 삽입
-    st.image("1.jpg", caption="평화롭고 포용적인 사회를 위한 교육", use_column_width=True)
+    st.image("1.png", caption="평화롭고 포용적인 사회를 위한 교육", use_column_width=True)
 
     # 페이지 제목 및 소개 문구
     
