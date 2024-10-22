@@ -8,7 +8,6 @@ from chat import BAMBOO_chat
 st.set_page_config(
         page_title="Bamboo",
         page_icon="🎋",
-        layout="wide",
         initial_sidebar_state="expanded"
     )
 def show_about_app():
@@ -100,7 +99,7 @@ def show_sidebar():
             username = st.session_state.username
         else:
             username = 'Anonymous'
-        st.write(f'안녕하세요 {username}님!')
+        st.markdown(f"**안녕하세요, {username}님!** 👋")
         choice = option_menu(
             'Hello',
             ['Welcome', "내 정보/로그인", '회원가입', "게시판", "약관 및 개인정보 활용방침"],
