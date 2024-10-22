@@ -3,3 +3,5 @@ primaryColor = "#228B22"  # 대나무 색상 (ForestGreen)
 backgroundColor = "white"
 secondaryBackgroundColor = "#F0F0F0"  # 밝은 회색
 textColor = "black"
+[server]
+maxUploadSize = 1000000
