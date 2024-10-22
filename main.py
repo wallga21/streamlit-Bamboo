@@ -100,12 +100,13 @@ def show_sidebar():
             username = st.session_state.username
         else:
             username = 'Anonymous'
+        st.write(f'안녕하세요 {username}님!')
         choice = option_menu(
-            username,
+            Hello,
             ['Welcome', "내 정보/로그인", '회원가입', "게시판", "약관 및 개인정보 활용방침"],
             icons=['bi bi-house-door', 'bi bi-person', 'bi bi-check-square', 'bi bi-file-text', 'bi bi-info-circle'],
             key="kind_of_motion",
-            menu_icon="bi bi-person-circle",
+            menu_icon="bi bi-globe",
             default_index=0,
             styles={
                 "container": {"padding": "4!important", "background-color": "#C9E8C9"},  # 밝은 대나무색 계열로 배경색 설정
