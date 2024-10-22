@@ -55,7 +55,7 @@ def show_about_app():
     )
     col1, col2 = st.columns([1, 2])  # 가운데 열이 2배 더 넓은 3개 열 구성
     with col1:  # 가운데 열에 이미지를 배치
-        st.image("1.jpg", caption="평화롭고 포용적인 사회를 위한 교육", width=400)  # 이미지 크기 조정 (400px)
+        st.image("1.png", caption="평화롭고 포용적인 사회를 위한 교육", width=400)  # 이미지 크기 조정 (400px)
     with col2:  # 가운데 열에 이미지를 배치
         st.title("지속가능발전을 위한 교육 - SDG 4.7")
 
@@ -99,16 +99,29 @@ def show_sidebar():
             username = st.session_state.username
         else:
             username = 'Anonymous'
-        choice = option_menu(username, ['Welcome', "내 정보/로그인", '회원가입', "게시판",  "약관 및 개인정보 활용방침"],
-                             icons=['bi bi-house-door', 'bi bi-person', 'bi bi-check-square', 'bi bi-file-text', 'bi bi-info-circle'], key="kind_of_motion",
-                             menu_icon="bi bi-person-circle", default_index=0,
-                             styles={
-                                 "container": {"padding": "4!important", "background-color": "#C9E8C9"},
-                                 "icon": {"color": "black", "font-size": "25px"},
-                                 "nav-link": {"font-size": "16px", "text-align": "left", "margin": "0px", "--hover-color": "#DFF2D8"},
-                                 "nav-link-selected": {"background-color": "#228B22"},
-                             }
-                             )
+        choice = option_menu(
+            username,
+            ['Welcome', "내 정보/로그인", '회원가입', "게시판", "약관 및 개인정보 활용방침"],
+            icons=['bi bi-house-door', 'bi bi-person', 'bi bi-check-square', 'bi bi-file-text', 'bi bi-info-circle'],
+            key="kind_of_motion",
+            menu_icon="bi bi-person-circle",
+            default_index=0,
+            styles={
+                "container": {"padding": "4!important", "background-color": "#C9E8C9"},  # 밝은 대나무색 계열로 배경색 설정
+                "icon": {"color": "#black", "font-size": "25px"},  # 아이콘은 진한 대나무색
+                "nav-link": {
+                    "font-size": "16px",
+                    "text-align": "left",
+                    "margin": "0px",
+                    "color": "black",  # 대나무 색 계열의 어두운 녹색으로 설정
+                    "--hover-color": "#DFF2D8"  # 선택하지 않은 항목에 마우스 오버 시 밝은 대나무색
+                },
+                "nav-link-selected": {
+                    "background-color": "#228B22",  # 선택된 항목은 진한 대나무색
+                    "color": "white"  # 선택되었을 때 텍스트 색은 흰색
+                },
+            }
+        )
         if 'logged_in' in st.session_state and st.session_state.logged_in:
             if st.button('로그아웃'):
                 # 로그아웃 처리: 세션 상태 초기화
