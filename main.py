@@ -102,7 +102,7 @@ def show_sidebar():
             username = 'Anonymous'
         st.write(f'안녕하세요 {username}님!')
         choice = option_menu(
-            Hello,
+            'Hello',
             ['Welcome', "내 정보/로그인", '회원가입', "게시판", "약관 및 개인정보 활용방침"],
             icons=['bi bi-house-door', 'bi bi-person', 'bi bi-check-square', 'bi bi-file-text', 'bi bi-info-circle'],
             key="kind_of_motion",
