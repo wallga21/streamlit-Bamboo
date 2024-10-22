@@ -15,8 +15,7 @@ def show_about_app():
     # 페이지 설정
     
 
-    # 이미지 파일 삽입
-    st.image("1.png", caption="평화롭고 포용적인 사회를 위한 교육", use_column_width=True)
+    
 
     # 페이지 제목 및 소개 문구
     
@@ -54,10 +53,11 @@ def show_about_app():
           **지속 가능한 미래**를 함께 설계하고 실현해 나갑니다.
         """
     )
-
-    # 또 다른 구분선
-    st.markdown("---")
-    st.title("지속가능발전을 위한 교육 - SDG 4.7")
+    col1, col2 = st.columns([1, 2])  # 가운데 열이 2배 더 넓은 3개 열 구성
+    with col1:  # 가운데 열에 이미지를 배치
+        st.image("1.jpg", caption="평화롭고 포용적인 사회를 위한 교육", width=400)  # 이미지 크기 조정 (400px)
+    with col2:  # 가운데 열에 이미지를 배치
+        st.title("지속가능발전을 위한 교육 - SDG 4.7")
 
     st.write(
         """
@@ -66,6 +66,9 @@ def show_about_app():
         교육을 통해 지속가능발전 증진을 위한 지식과 기술의 습득을 보장합니다.
         """
     )
+    # 또 다른 구분선
+    st.markdown("---")
+    
     # 커뮤니티 참여 유도
     st.header("당신이 꿈꾸는 세상을 함께 만들어보세요!")
     st.write(
@@ -92,7 +95,7 @@ def show_about_app():
 def show_sidebar():
     '''이 함수는 여러 페이지를 탐색하기 위한 탭이며, 사용자가 로그인되어있는지 아닌지를 판단하여 그에 맞는 페이지를 불러옵니다.'''
     with st.sidebar:
-        if 'username' in st.session_state:
+        if 'logged_in' in st.session_state and st.session_state.logged_in:
             username = st.session_state.username
         else:
             username = 'Anonymous'
@@ -100,12 +103,18 @@ def show_sidebar():
                              icons=['bi bi-house-door', 'bi bi-person', 'bi bi-check-square', 'bi bi-file-text', 'bi bi-info-circle'], key="kind_of_motion",
                              menu_icon="bi bi-person-circle", default_index=0,
                              styles={
-                                 "container": {"padding": "4!important", "background-color": "#fafafa"},
+                                 "container": {"padding": "4!important", "background-color": "#C9E8C9"},
                                  "icon": {"color": "black", "font-size": "25px"},
-                                 "nav-link": {"font-size": "16px", "text-align": "left", "margin": "0px", "--hover-color": "#fafafa"},
-                                 "nav-link-selected": {"background-color": "#08c7b4"},
+                                 "nav-link": {"font-size": "16px", "text-align": "left", "margin": "0px", "--hover-color": "#DFF2D8"},
+                                 "nav-link-selected": {"background-color": "#228B22"},
                              }
                              )
+        if 'logged_in' in st.session_state and st.session_state.logged_in:
+            if st.button('로그아웃'):
+                # 로그아웃 처리: 세션 상태 초기화
+                st.session_state.logged_in = False
+                st.session_state.username = 'Anonymous'
+                st.success("로그아웃되었습니다.")
 
     if st.session_state["kind_of_motion"] == "Welcome":
         show_about_app()
