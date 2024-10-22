@@ -54,7 +54,7 @@ def show_about_app():
     )
     col1, col2 = st.columns([1, 2])  # 가운데 열이 2배 더 넓은 3개 열 구성
     with col1:  # 가운데 열에 이미지를 배치
-        st.image("1.png", caption="평화롭고 포용적인 사회를 위한 교육", width=400)  # 이미지 크기 조정 (400px)
+        st.image("1.png", caption="평화롭고 포용적인 사회를 위한 교육")  # 이미지 크기 조정 (400px)
     with col2:  # 가운데 열에 이미지를 배치
         st.title("지속가능발전을 위한 교육 - SDG 4.7")
         st.write(
@@ -124,12 +124,13 @@ def show_sidebar():
             }
         )
         if 'logged_in' in st.session_state and st.session_state.logged_in:
-            if st.button('로그아웃'):
-                # 로그아웃 처리: 세션 상태 초기화
-                st.session_state.logged_in = False
-                st.session_state.username = 'Anonymous'
-                st.success("로그아웃되었습니다.")
-
+            col = st.columns(1)  # 단일 컬럼 생성
+            with col[0]:
+                if st.button('로그아웃', use_container_width=True):  # 버튼이 가로로 꽉 차도록 설정
+                    # 로그아웃 처리: 세션 상태 초기화
+                    st.session_state.logged_in = False
+                    st.session_state.username = 'Anonymous'
+                    st.success("로그아웃되었습니다.")
     if st.session_state["kind_of_motion"] == "Welcome":
         show_about_app()
     elif st.session_state["kind_of_motion"] == "내 정보/로그인":
