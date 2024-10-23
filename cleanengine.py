@@ -15,7 +15,7 @@ def goodbad(new_text):
     padded_sequence = pad_sequences(sequence, maxlen=max_sequence_length)
     a=model2.predict(padded_sequence)
     print(a, new_text)
-    return a<=0.85
+    return a
 
 # Mapping from Compatibility Jamo to Hangul Jamo (Choseong)
 compat_to_standard_initials = {
