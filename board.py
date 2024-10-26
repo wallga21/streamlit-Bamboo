@@ -1,10 +1,16 @@
 import streamlit as st
-import sqlite3
 import datetime
+from supabase import create_client, Client
 from cleanengine import nametest, goodbad
 
+# Initialize Supabase client
+SUPABASE_URL = "https://kwucjttxdmtntzrvaucm.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3dWNqdHR4ZG10bnR6cnZhdWNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk5MDg4MTQsImV4cCI6MjA0NTQ4NDgxNH0.ST0-QIovKBVIFzKATRM-nDgyNkeQyMJo097P5iccCFo"
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+BUCKET_NAME = "Bamboo-files"  # Name of your Supabase Storage bucket
+
 def board():
-    '''이 함수는 데이터베이스에서 게시물 파일을 불러와 시간 순서대로 이를 보여주거나 내가 입력한 게시물을 업로드하는 역할을 한다.'''
+    '''Displays posts from the database in chronological order or uploads user-created posts with file storage support.'''
     st.header('게시판')
     if 'title' not in st.session_state:
         st.session_state.title = ''
@@ -12,7 +18,8 @@ def board():
         st.session_state.content = ''
     if 'file' not in st.session_state:
         st.session_state.file = None
-    # 게시글 작성
+
+    # Post Creation
     if st.session_state.get('logged_in'):
         st.subheader('새 게시글 작성')
 
@@ -20,27 +27,36 @@ def board():
             st.session_state.title = st.text_input("제목을 입력하세요:", value=st.session_state.title)
             st.session_state.content = st.text_area("내용을 입력하세요:", value=st.session_state.content)
             st.session_state.file = st.file_uploader("파일을 업로드하세요:",
-                                                     type=["jpg", "jpeg", "png", "pdf", "docx", "xlsx", "hwp", "hwpx",
-                                                           "cap"])
+                                                     type=["jpg", "jpeg", "png", "pdf", "docx", "xlsx", "hwp", "hwpx", "cap"])
             submit_button = st.form_submit_button("게시")
 
         if submit_button:
             if st.session_state.title and st.session_state.content:
+                # Content filtering
                 test = st.session_state.title + ' ' + st.session_state.content
                 goodbad_result = goodbad(test)
-                if goodbad_result > 0.9 or (nametest(test) and goodbad_result > 0.6):      
+                if goodbad_result > 0.9 or (nametest(test) and goodbad_result > 0.6):
                     st.error("cleanengine에 의하여 게시가 제한되었습니다. 타인을 비난 및 비방하는 글은 삼가주시기 바랍니다.")
                 else:
-                    conn = sqlite3.connect('bamboo.db')
-                    c = conn.cursor()
-                    file_data = st.session_state.file.read() if st.session_state.file else None
-                    file_name = st.session_state.file.name if st.session_state.file else None
-                    now_utc = datetime.datetime.utcnow()
+                    # Prepare metadata and file data
+                    file_url, file_name = None, None
+                    if st.session_state.file:
+                        file_name = st.session_state.file.name
+                        # Upload file to Supabase Storage
+                        response = supabase.storage.from_(BUCKET_NAME).upload(
+                            f"{st.session_state.username}/{file_name}", st.session_state.file
+                        )
+                        if response.get("error"):
+                            st.error("파일 업로드에 실패했습니다.")
+                        else:
+                            # Retrieve public URL
+                            file_url = supabase.storage.from_(BUCKET_NAME).get_public_url(
+                                f"{st.session_state.username}/{file_name}"
+                            )["publicURL"]
 
-                    # 한국 시간으로 변환 (UTC + 9시간)
-                    kst_time = now_utc + datetime.timedelta(hours=9)
-                    
-                    # 한국 시간 형식으로 출력
+                    # Save post data in Supabase
+                    now_utc = datetime.datetime.utcnow()
+                    kst_time = now_utc + datetime.timedelta(hours=9)  # Convert to Korean time (UTC + 9)
                     timestamp = kst_time.strftime("%Y-%m-%d %H:%M:%S")
                     name = st.session_state.username
 
@@ -49,104 +65,63 @@ def board():
                         "title": st.session_state.title,
                         "content": st.session_state.content,
                         "file_name": file_name,
-                        "file_data": file_data,
+                        "file_url": file_url,
                         "timestamp": timestamp,
-                        "is_deleted": False  # 삭제 여부를 위한 필드 추가
+                        "is_deleted": False
                     }
-                    # 게시글 업로드 시 데이터베이스에 업로드 코드
-                    c.execute(
-                        "INSERT INTO posts (username, title, content, file_name, file_data, timestamp, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        (post_data["username"], post_data["title"], post_data["content"], post_data["file_name"],
-                         post_data["file_data"], post_data["timestamp"], post_data["is_deleted"]))
-                    conn.commit()
-                    conn.close()
 
-                    # 성공 후 입력 값을 초기화
+                    # Insert post data into Supabase
+                    supabase.table("posts").insert(post_data).execute()
+
+                    # Reset form inputs
                     st.session_state.title = ''
                     st.session_state.content = ''
                     st.session_state.file = None
-
                     st.success("게시글이 성공적으로 게시되었습니다.")
             else:
                 st.error("제목과 내용을 입력하세요.")
 
-    # 게시글 목록
+    # Display Posts
     st.subheader('게시글 목록')
-
-    conn = sqlite3.connect('bamboo.db')
-    c = conn.cursor()
-    # 게시글 목록 불러오는 코드
-    c.execute(
-        "SELECT rowid, username, title, content, file_name, file_data, timestamp, is_deleted FROM posts ORDER BY timestamp DESC")
-    posts = c.fetchall()
-    conn.close()
-
-    post_list = []
-    for post in posts:
-        post_data = {
-            "rowid": post[0],
-            "username": post[1],
-            "title": post[2],
-            "content": post[3],
-            "file_name": post[4],
-            "file_data": post[5],
-            "timestamp": post[6],
-            "is_deleted": post[7]
-        }
-        post_list.append(post_data)
+    response = supabase.table("posts").select("*").order("timestamp", desc=True).execute()
+    posts = response.data
 
     current_user = st.session_state.get('username')
-
-    # 삭제 확인용 상태 변수 생성
     if 'delete_post_id' not in st.session_state:
         st.session_state['delete_post_id'] = None
 
-    for post_data in post_list:
+    for post_data in posts:
         if post_data['is_deleted']:
             st.write("삭제된 글입니다.")
         else:
             st.write(f"### {post_data['title']}")
             st.write(f"작성자: {post_data['username']}")
             st.write(f"작성 시간: {post_data['timestamp']}")
-
-        # 게시글이 삭제되었는지 확인
-        if post_data['is_deleted']:
-            st.write("삭제된 글입니다.")
-        else:
             st.write(post_data['content'])
-            # 작성자 본인이면 삭제 버튼 제공
-            if post_data['username'] == current_user:
-                
 
-                # 삭제 버튼 추가
+            # Show delete button for post owner
+            if post_data['username'] == current_user:
                 if st.session_state['delete_post_id'] is None:
-                    if st.button(f"{post_data['rowid']}번 글 삭제", key=f"delete_button_{post_data['rowid']}"):
-                        st.session_state['delete_post_id'] = post_data['rowid']
+                    if st.button(f"{post_data['id']}번 글 삭제", key=f"delete_button_{post_data['id']}"):
+                        st.session_state['delete_post_id'] = post_data['id']
                         st.rerun()
 
-                if st.session_state['delete_post_id'] == post_data['rowid']:
+                if st.session_state['delete_post_id'] == post_data['id']:
                     st.warning("이 글을 삭제하시겠습니까?", icon="⚠️")
-
-                    if st.button("예, 삭제합니다", key=f"confirm_delete_{post_data['rowid']}"):
-                        # 삭제 로직 수행
-                        conn = sqlite3.connect('bamboo.db')
-                        c = conn.cursor()
-                        c.execute("UPDATE posts SET is_deleted = ? WHERE rowid = ?", (True, post_data['rowid']))
-                        conn.commit()
-                        conn.close()
+                    if st.button("예, 삭제합니다", key=f"confirm_delete_{post_data['id']}"):
+                        supabase.table("posts").update({"is_deleted": True}).eq("id", post_data['id']).execute()
                         st.success("게시글이 삭제되었습니다.")
                         st.session_state['delete_post_id'] = None
-                        st.rerun()  # 화면 새로고침
-                    elif st.button("취소", key=f"cancel_delete_{post_data['rowid']}"):
+                        st.rerun()
+                    elif st.button("취소", key=f"cancel_delete_{post_data['id']}"):
                         st.session_state['delete_post_id'] = None
                         st.rerun()
 
-        # 파일이 있는 경우 파일 유지
-        if post_data['file_name'] and post_data['file_data'] and not post_data['is_deleted']:
-            if post_data['file_name'].lower().endswith(('jpg', 'jpeg', 'png')):
-                st.image(post_data['file_data'], use_column_width=True)
-            else:
-                st.download_button(label=f"{post_data['file_name']} 다운로드", data=post_data['file_data'],
-                                   file_name=post_data['file_name'])
+            # Display file if available and not deleted
+            if post_data['file_url'] and not post_data['is_deleted']:
+                if post_data['file_name'].lower().endswith(('jpg', 'jpeg', 'png')):
+                    st.image(post_data['file_url'], use_column_width=True)
+                else:
+                    st.write(f"[{post_data['file_name']} 다운로드]({post_data['file_url']})", unsafe_allow_html=True)
 
         st.divider()

@@ -4,12 +4,75 @@ import string
 import hashlib
 import smtplib
 import sqlite3
+from supabase import create_client, Client
+
+SUPABASE_URL = "https://kwucjttxdmtntzrvaucm.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3dWNqdHR4ZG10bnR6cnZhdWNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk5MDg4MTQsImV4cCI6MjA0NTQ4NDgxNH0.ST0-QIovKBVIFzKATRM-nDgyNkeQyMJo097P5iccCFo"
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 def hash_password(password):
     '''이 함수는 사용자 암호를 해싱하여 저장하는 함수로, 개인정보법에 의해 유져 데이터를 보호하기 위함이다. 해싱된 비밀번호를 return한다.'''
     sha256 = hashlib.sha256()
     sha256.update(password.encode('utf-8'))
     return sha256.hexdigest()
 
+
+def my_id():
+    '''Displays user ID and allows password changes.'''
+    # Retrieve username and email from session state
+    username = st.session_state.get('username', 'Anonymous')
+    email = st.session_state.get('email', None)
+
+    st.header(f'내 정보: 내 이름은: {username}')
+
+    if username != 'Anonymous' and email:
+        st.subheader('비밀번호 변경')
+
+        # Password change form
+        with st.form("password_change_form"):
+            new_password = st.text_input("새로운 비밀번호를 입력하세요:", type='password')
+            change_submitted = st.form_submit_button("비밀번호 변경")
+
+        if change_submitted:
+            if new_password:
+                # Generate and send verification code
+                verification_code = ''.join(random.choices(string.digits, k=6))
+                st.session_state.password_change_code = verification_code
+                st.session_state.new_password = new_password
+
+                if send_verification_email(email, verification_code):
+                    st.success(f"{email}로 인증 코드가 전송되었습니다.")
+                    st.session_state.email_sent = True
+                else:
+                    st.error("인증 코드 전송 실패. 이메일 주소를 확인하세요.")
+            else:
+                st.error("새로운 비밀번호를 입력하세요.")
+
+        # Code verification and password update
+        if st.session_state.get('email_sent'):
+            user_code = st.text_input("이메일로 전송된 인증 코드를 입력하세요:")
+            verify_code_submitted = st.button("인증 코드 확인")
+
+            if verify_code_submitted and 'password_change_code' in st.session_state:
+                if user_code == st.session_state.password_change_code:
+                    # Hash the new password
+                    hashed_new_password = hash_password(st.session_state.new_password)
+
+                    # Update password in Supabase
+                    response = supabase.table("users").update({"password": hashed_new_password}).eq("email",
+                                                                                                    email).execute()
+
+                    if response.status_code == 200:
+                        st.success("비밀번호가 성공적으로 변경되었습니다.")
+                        # Clear temporary session variables
+                        del st.session_state.password_change_code
+                        del st.session_state.new_password
+                        del st.session_state.email_sent
+                    else:
+                        st.error("비밀번호 업데이트 중 문제가 발생했습니다.")
+                else:
+                    st.error("잘못된 인증 코드입니다.")
+    else:
+        st.error("로그인이 필요합니다.")
 def send_verification_email(email, code):
     '''이 함수는 회원가입 시 smtp서버를 이용하여 사용자에게 인증 메일을 보내는 역할을 한다. 이메일 정송에 성공했는지 실패했는지 RETURN 한다.'''
     try:
@@ -28,42 +91,50 @@ def generate_random_username():
     '''이 함수는 익명성을 보장하기 위해 사용자가 회원가입을 할 때 임의의 사용자이름을 지정해 준다. 생성된 사용자이름을 return 한다.'''
     return ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
+def toggle_privacy_policy():
+    st.session_state.show_privacy = not st.session_state.show_privacy
+
+
+# Google Login
+def google_auth_redirect():
+    auth_url = f"{SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=https://bamboo.streamlit.app/"
+    st.markdown(f"[Google로 로그인]({auth_url})", unsafe_allow_html=True)
+    st.write("Google 인증 후, 자동으로 돌아옵니다.")
+
+# Login Function (Email/Password and Google)
 def login():
-    '''이 함수는 데이터베이스의 사용자 정보와 대조하여 로그인 정보가 올바른지 알려준다.'''
     st.header('로그인')
+    google_auth_redirect()  # Add Google Login Option
+
+    # Standard Login Form
     with st.form("login_form"):
         email = st.text_input("이메일을 입력하세요:")
         password = st.text_input("비밀번호를 입력해 주세요:", type='password')
         form_submitted = st.form_submit_button("완료")
 
-    if form_submitted:
-        if email and password:
-            hashed_password = hash_password(password)
-            conn = sqlite3.connect('bamboo.db')
-            c = conn.cursor()
-            c.execute("SELECT * FROM users WHERE email = ? AND password = ?", (email, hashed_password)) # 원래 있던 유저인지 대조
-            user = c.fetchone()
-            conn.close()
+    if form_submitted and email and password:
+        hashed_password = hash_password(password)
+        response = supabase.table("users").select("*").eq("email", email).eq("password", hashed_password).execute()
 
-            if user:
-                st.success("로그인 성공!")
-                st.session_state.username = user[3]
-                st.session_state.email = email
-                st.session_state.logged_in = True
+        if response.data:
+            user = response.data[0]
+            st.success("로그인 성공!")
+            st.session_state.username = user["username"]
+            st.session_state.email = email
+            st.session_state.logged_in = True
+        else:
+            st.error("이메일 또는 비밀번호가 잘못되었습니다.")
 
-            else:
-                st.error("이메일 또는 비밀번호가 잘못되었습니다.")
-
-
-def toggle_privacy_policy():
-    st.session_state.show_privacy = not st.session_state.show_privacy
+# Sign-Up Function (with Google Option)
 def sign_in():
-    '''회원가입을 위한 코드이며, 사용자가 이메일을 입력하면 그 이메일로 인증 메일을 보내 확인한 후 회원 가입을 진행한다.'''
     if 'show_privacy' not in st.session_state:
         st.session_state.show_privacy = False
     st.header('회원가입')
-    st.session_state.email_sent = True
 
+    # Google Sign-Up Option
+    google_auth_redirect()
+
+    # Standard Sign-Up Form
     with st.form("user_input_form"):
         email = st.text_input("이메일을 입력하세요:")
         password = st.text_input("비밀번호를 입력해 주세요:", type='password')
@@ -72,14 +143,9 @@ def sign_in():
 
     if form_submitted:
         if email and password and consent_given:
-            conn = sqlite3.connect('bamboo.db')
-            c = conn.cursor()
-            c.execute("SELECT * FROM users WHERE email = ?", (email,))
-            user = c.fetchone()
-
-            if user:
+            response = supabase.table("users").select("*").eq("email", email).execute()
+            if response.data:
                 st.error("이미 가입되어있습니다.")
-                conn.close()
             else:
                 verification_code = ''.join(random.choices(string.digits, k=6))
                 st.session_state.verification_code = verification_code
@@ -90,7 +156,6 @@ def sign_in():
                     st.session_state.password = hash_password(password)
                 else:
                     st.error("인증 코드 전송에 실패했습니다.")
-                conn.close()
         elif not consent_given:
             st.error("약관 및 개인정보 활용방침에 동의해야 합니다.")
         else:
@@ -100,80 +165,22 @@ def sign_in():
         user_code = st.text_input("이메일로 전송된 인증 코드를 입력하세요:")
         verify_code_submitted = st.button("인증 코드 확인")
         if verify_code_submitted and 'verification_code' in st.session_state:
-            if user_code == st.session_state.verification_code :
+            if user_code == st.session_state.verification_code:
                 st.success("Email 인증 완료!")
                 st.session_state.username = generate_random_username()
                 st.success(f"생성된 username은 : {st.session_state.username} 입니다!")
 
-                conn = sqlite3.connect('bamboo.db')
-                c = conn.cursor()
-                #
-                c.execute("INSERT INTO users (email, password, username) VALUES (?, ?, ?)",
-                          (st.session_state.email, st.session_state.password, st.session_state.username))
-                conn.commit()
-                conn.close()
-
+                # Store new user in Supabase
+                supabase.table("users").insert({
+                    "email": st.session_state.email,
+                    "password": st.session_state.password,
+                    "username": st.session_state.username
+                }).execute()
                 st.session_state.logged_in = True
 
     st.button("개인정보 활용방침 및 약관", on_click=toggle_privacy_policy)
     if st.session_state.show_privacy:
         show_privacy_policy()
-
-
-def my_id():
-    '''내 id를 보거나 비밀번호 변경을 할 수 있다.'''
-    if 'username' in st.session_state:
-        username = st.session_state.username
-        email = st.session_state.email
-    else:
-        username = 'Anonymous'
-        email = None
-
-    st.header(f'내 정보: 내 이름은: {username}')
-
-    if username != 'Anonymous':
-        st.subheader('비밀번호 변경')
-
-        with st.form("password_change_form"):
-            new_password = st.text_input("새로운 비밀번호를 입력하세요:", type='password')
-            change_submitted = st.form_submit_button("비밀번호 변경")
-
-        if change_submitted:
-            if new_password:
-                verification_code = ''.join(random.choices(string.digits, k=6))
-                st.session_state.password_change_code = verification_code
-                st.session_state.new_password = new_password
-
-                if send_verification_email(email, verification_code):
-                    st.success(f"{email}로 인증 코드가 전송되었습니다.")
-                    st.session_state.email_sent = True
-                else:
-                    st.error("인증 코드 전송 실패. 이메일 주소를 확인하세요.")
-            else:
-                st.error("새로운 비밀번호를 입력하세요.")
-
-        if st.session_state.get('email_sent'):
-            user_code = st.text_input("이메일로 전송된 인증 코드를 입력하세요:")
-            verify_code_submitted = st.button("인증 코드 확인")
-
-            if verify_code_submitted and 'password_change_code' in st.session_state:
-                if user_code == st.session_state.password_change_code:
-                    hashed_new_password = hash_password(st.session_state.new_password)
-                    conn = sqlite3.connect('bamboo.db')
-                    c = conn.cursor()
-                    c.execute("UPDATE users SET password = ? WHERE email = ?",
-                              (hashed_new_password, email))
-                    conn.commit()
-                    conn.close()
-
-                    st.success("비밀번호가 성공적으로 변경되었습니다.")
-                    del st.session_state.password_change_code
-                    del st.session_state.new_password
-                    del st.session_state.email_sent
-                else:
-                    st.error("잘못된 인증 코드입니다.")
-    else:
-        st.error("로그인이 필요합니다.")
 
 
 def show_privacy_policy():
