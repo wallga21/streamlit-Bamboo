@@ -3,3 +3,4 @@ gliner
 tensorflow
 keras
 pickle5
+supabase
