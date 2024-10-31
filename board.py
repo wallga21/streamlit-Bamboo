@@ -28,7 +28,7 @@ def board():
             if st.session_state.title and st.session_state.content:
                 test = st.session_state.title + ' ' + st.session_state.content
                 goodbad_result = goodbad(test)
-                if goodbad_result > 0.9 or (nametest(test) and goodbad_result > 0.6):      
+                if goodbad_result > 0.95 or (nametest(test) and goodbad_result > 0.6):      
                     st.error("cleanengine에 의하여 게시가 제한되었습니다. 타인을 비난 및 비방하는 글은 삼가주시기 바랍니다.")
                 else:
                     conn = sqlite3.connect('bamboo.db')
