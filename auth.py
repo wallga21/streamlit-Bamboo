@@ -4,6 +4,7 @@ import string
 import hashlib
 import smtplib
 import sqlite3
+api_key = st.secrets["api_key"]
 def hash_password(password):
     '''이 함수는 사용자 암호를 해싱하여 저장하는 함수로, 개인정보법에 의해 유져 데이터를 보호하기 위함이다. 해싱된 비밀번호를 return한다.'''
     sha256 = hashlib.sha256()
@@ -15,7 +16,7 @@ def send_verification_email(email, code):
     try:
         server = smtplib.SMTP('smtp.gmail.com', 587) #gmail사용
         server.starttls()
-        server.login('dshsbamboo@gmail.com', 'ighe goyy grfl isnb')  # 발신자 이메일, 비밀번호
+        server.login('dshsbamboo@gmail.com', api_key)  # 발신자 이메일, 비밀번호
         message = f"Subject: BAMBOO code\n\ncode: {code}" # 인증 코드 발송 내용
         server.sendmail('dshsbamboo@gmail.com', email, message)  # 발신자 이메일, 수신자 이메일, 메세지
         server.quit() # 이메일 서버 닫기
